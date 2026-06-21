@@ -1,0 +1,13 @@
+data/raw/
+app/data/ceva_analytics.db
+app/data/last_batch_results.csv
+app/data/last_batch_meta.json
+app/data/treated.json
+app/data/unknown_log.json
+models/*.pkl
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+.DS_Store
+*.pdf

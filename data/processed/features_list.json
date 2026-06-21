@@ -1,0 +1,36 @@
+{
+  "features_ml": [
+    "Year",
+    "Month",
+    "Quarter",
+    "Week",
+    "DayOfWeek",
+    "IsWeekend",
+    "Shp Gross Weight (KG)",
+    "Shp Gross Volume (M3)",
+    "Sum Shp SU Count",
+    "Shp Leadtime",
+    "Weight_Per_SU",
+    "Volume_Weight_Ratio",
+    "Is_Oversize",
+    "Is_Hazardous",
+    "Business Unit_Encoded",
+    "MOT_Encoded",
+    "Service Level_Encoded",
+    "Carrier_TargetEnc",
+    "Route_TargetEnc",
+    "Carrier_Delay_Rate",
+    "Route_Delay_Rate",
+    "Route_Complexity_Score"
+  ],
+  "target": "Is_Delayed",
+  "reference_cols": [
+    "Shipment Reference",
+    "Business Unit",
+    "Carrier Name",
+    "Route",
+    "MOT",
+    "Shp Creation DateTime",
+    "Actual Delivery Date"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "Air France Cargo": {
+    "delay_rate": 0.2781,
+    "volume": 3772
+  },
+  "British Airways Cargo": {
+    "delay_rate": 0.2988,
+    "volume": 2493
+  },
+  "Cathay Pacific Cargo": {
+    "delay_rate": 0.2704,
+    "volume": 477
+  },
+  "DB Schenker Air": {
+    "delay_rate": 0.4944,
+    "volume": 2421
+  },
+  "DHL Express": {
+    "delay_rate": 0.1297,
+    "volume": 4672
+  },
+  "Emirates SkyCargo": {
+    "delay_rate": 0.2845,
+    "volume": 2197
+  },
+  "FedEx Express": {
+    "delay_rate": 0.1543,
+    "volume": 3610
+  },
+  "Kuehne+Nagel Air": {
+    "delay_rate": 0.4564,
+    "volume": 2088
+  },
+  "Lufthansa Cargo": {
+    "delay_rate": 0.2562,
+    "volume": 3056
+  },
+  "Panalpina Air": {
+    "delay_rate": 0.5257,
+    "volume": 1480
+  },
+  "Singapore Airlines Cargo": {
+    "delay_rate": 0.1968,
+    "volume": 2434
+  },
+  "UPS": {
+    "delay_rate": 0.2264,
+    "volume": 2496
+  }
+}

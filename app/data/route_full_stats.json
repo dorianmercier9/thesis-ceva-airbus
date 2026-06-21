@@ -1,0 +1,166 @@
+{
+  "CA\u2192ES": {
+    "delay_rate": 0.2857,
+    "volume": 455
+  },
+  "CA\u2192FR": {
+    "delay_rate": 0.2712,
+    "volume": 531
+  },
+  "CN\u2192DE": {
+    "delay_rate": 0.2386,
+    "volume": 352
+  },
+  "CN\u2192ES": {
+    "delay_rate": 0.2695,
+    "volume": 3540
+  },
+  "CN\u2192FR": {
+    "delay_rate": 0.2773,
+    "volume": 1951
+  },
+  "DE\u2192ES": {
+    "delay_rate": 0.2697,
+    "volume": 2963
+  },
+  "DE\u2192FR": {
+    "delay_rate": 0.2599,
+    "volume": 962
+  },
+  "DE\u2192GB": {
+    "delay_rate": 0.2893,
+    "volume": 197
+  },
+  "DE\u2192IN": {
+    "delay_rate": 0.2703,
+    "volume": 74
+  },
+  "DE\u2192JP": {
+    "delay_rate": 0.1905,
+    "volume": 21
+  },
+  "DE\u2192KR": {
+    "delay_rate": 0.2903,
+    "volume": 62
+  },
+  "DE\u2192PL": {
+    "delay_rate": 0.2679,
+    "volume": 56
+  },
+  "ES\u2192AE": {
+    "delay_rate": 0.3036,
+    "volume": 224
+  },
+  "ES\u2192BR": {
+    "delay_rate": 0.2537,
+    "volume": 67
+  },
+  "ES\u2192DE": {
+    "delay_rate": 0.2857,
+    "volume": 161
+  },
+  "ES\u2192EG": {
+    "delay_rate": 0.3645,
+    "volume": 107
+  },
+  "ES\u2192MA": {
+    "delay_rate": 0.2866,
+    "volume": 157
+  },
+  "ES\u2192QA": {
+    "delay_rate": 0.2708,
+    "volume": 144
+  },
+  "ES\u2192SA": {
+    "delay_rate": 0.2585,
+    "volume": 205
+  },
+  "ES\u2192ZA": {
+    "delay_rate": 0.4138,
+    "volume": 58
+  },
+  "FR\u2192AE": {
+    "delay_rate": 0.25,
+    "volume": 96
+  },
+  "FR\u2192BR": {
+    "delay_rate": 0.2,
+    "volume": 55
+  },
+  "FR\u2192DE": {
+    "delay_rate": 0.2729,
+    "volume": 1330
+  },
+  "FR\u2192ES": {
+    "delay_rate": 0.2719,
+    "volume": 2159
+  },
+  "FR\u2192GB": {
+    "delay_rate": 0.2558,
+    "volume": 563
+  },
+  "FR\u2192IN": {
+    "delay_rate": 0.2683,
+    "volume": 82
+  },
+  "FR\u2192JP": {
+    "delay_rate": 0.3137,
+    "volume": 51
+  },
+  "FR\u2192MA": {
+    "delay_rate": 0.2459,
+    "volume": 61
+  },
+  "FR\u2192US": {
+    "delay_rate": 0.3171,
+    "volume": 123
+  },
+  "GB\u2192AE": {
+    "delay_rate": 0.3182,
+    "volume": 22
+  },
+  "GB\u2192DE": {
+    "delay_rate": 0.2721,
+    "volume": 702
+  },
+  "GB\u2192ES": {
+    "delay_rate": 0.2755,
+    "volume": 1118
+  },
+  "GB\u2192FR": {
+    "delay_rate": 0.3418,
+    "volume": 79
+  },
+  "SG\u2192ES": {
+    "delay_rate": 0.2778,
+    "volume": 828
+  },
+  "SG\u2192FR": {
+    "delay_rate": 0.3125,
+    "volume": 288
+  },
+  "TK\u2192DE": {
+    "delay_rate": 0.1875,
+    "volume": 128
+  },
+  "TK\u2192ES": {
+    "delay_rate": 0.251,
+    "volume": 243
+  },
+  "US\u2192DE": {
+    "delay_rate": 0.2736,
+    "volume": 1579
+  },
+  "US\u2192ES": {
+    "delay_rate": 0.2727,
+    "volume": 2585
+  },
+  "US\u2192FR": {
+    "delay_rate": 0.2652,
+    "volume": 6434
+  },
+  "US\u2192GB": {
+    "delay_rate": 0.3055,
+    "volume": 383
+  }
+}
