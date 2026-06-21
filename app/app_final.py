@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import json
 import os
+import sqlite3
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -16,10 +17,8 @@ MODEL_PATH         = BASE_DIR.parent / "models" / "random_forest_corrected.pkl"
 SCALER_PATH        = BASE_DIR.parent / "models" / "scaler_corrected.pkl"
 CARRIER_STATS_PATH = BASE_DIR / "data" / "carrier_full_stats.json"
 ROUTE_STATS_PATH   = BASE_DIR / "data" / "route_full_stats.json"
-BATCH_STORAGE_PATH = BASE_DIR / "data" / "last_batch_results.csv"
 BATCH_META_PATH    = BASE_DIR / "data" / "last_batch_meta.json"
-UNKNOWN_LOG_PATH   = BASE_DIR / "data" / "unknown_log.json"
-TREATED_PATH       = BASE_DIR / "data" / "treated.json"
+DB_PATH            = BASE_DIR / "data" / "ceva_analytics.db"
 
 DEFAULT_DELAY_RATE = 0.27
 DEFAULT_VOLUME     = 500
@@ -127,45 +126,131 @@ except Exception as e:
     st.stop()
 
 # ============================================================
-# GESTION DES FICHIERS PERSISTANTS
+# BASE DE DONNEES SQLITE
 # ============================================================
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def load_unknown_log():
-    if UNKNOWN_LOG_PATH.exists():
-        with open(UNKNOWN_LOG_PATH) as f:
-            return json.load(f)
-    return {"transporteurs_inconnus": {}, "routes_inconnues": {}, "derniere_mise_a_jour": ""}
+    try:
+        conn = get_db()
+        cursor = conn.execute("SELECT valeur, GROUP_CONCAT(DISTINCT shipment_id) FROM unknown_elements WHERE type='carrier' GROUP BY valeur")
+        carriers = {row[0]: row[1].split(',') if row[1] else [] for row in cursor.fetchall()}
+        cursor = conn.execute("SELECT valeur, GROUP_CONCAT(DISTINCT shipment_id) FROM unknown_elements WHERE type='route' GROUP BY valeur")
+        routes = {row[0]: row[1].split(',') if row[1] else [] for row in cursor.fetchall()}
+        cursor = conn.execute("SELECT MAX(detected_at) FROM unknown_elements")
+        last_update = cursor.fetchone()[0] or ""
+        conn.close()
+        return {"transporteurs_inconnus": carriers, "routes_inconnues": routes, "derniere_mise_a_jour": last_update}
+    except Exception:
+        return {"transporteurs_inconnus": {}, "routes_inconnues": {}, "derniere_mise_a_jour": ""}
 
 def save_unknown_log(log):
-    os.makedirs(UNKNOWN_LOG_PATH.parent, exist_ok=True)
-    log["derniere_mise_a_jour"] = datetime.now().strftime("%d/%m/%Y à %H:%M")
-    with open(UNKNOWN_LOG_PATH, 'w') as f:
-        json.dump(log, f, ensure_ascii=False, indent=2)
+    conn = get_db()
+    conn.execute("DELETE FROM unknown_elements")
+    conn.commit()
+    conn.close()
+
+def save_unknown_elements(unknown_carriers, unknown_routes):
+    conn = get_db()
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    for carrier, shipment_ids in unknown_carriers.items():
+        for sid in shipment_ids:
+            try:
+                conn.execute("INSERT OR IGNORE INTO unknown_elements (type, valeur, shipment_id, detected_at) VALUES (?, ?, ?, ?)", ('carrier', carrier, sid, now))
+            except Exception:
+                pass
+    for route, shipment_ids in unknown_routes.items():
+        for sid in shipment_ids:
+            try:
+                conn.execute("INSERT OR IGNORE INTO unknown_elements (type, valeur, shipment_id, detected_at) VALUES (?, ?, ?, ?)", ('route', route, sid, now))
+            except Exception:
+                pass
+    conn.commit()
+    conn.close()
 
 def load_treated():
-    if TREATED_PATH.exists():
-        with open(TREATED_PATH) as f:
-            data = json.load(f)
+    try:
+        conn = get_db()
+        # Charger tous les suivis actifs et filtrer en Python avec de vrais datetime
+        cursor = conn.execute("SELECT shipment_id, pickup_date, marked_at FROM suivis WHERE active=1")
         today = datetime.now().date()
-        # Nettoyer les entrées expirées (pickup passé)
-        data = {k: v for k, v in data.items()
-                if datetime.strptime(v['pickup_date'], '%d/%m/%Y').date() >= today}
-        return data
-    return {}
+        result = {}
+        for row in cursor.fetchall():
+            try:
+                pickup_dt = datetime.strptime(row['pickup_date'], '%d/%m/%Y').date()
+                if pickup_dt >= today:
+                    result[row['shipment_id']] = {'pickup_date': row['pickup_date'], 'marked_at': row['marked_at']}
+            except Exception:
+                pass
+        conn.close()
+        return result
+    except Exception:
+        return {}
 
 def save_treated(data):
-    os.makedirs(TREATED_PATH.parent, exist_ok=True)
-    with open(TREATED_PATH, 'w') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    pass
 
 def mark_as_treated(shipment_id, pickup_date):
-    data = load_treated()
-    data[shipment_id] = {"pickup_date": pickup_date, "marked_at": datetime.now().strftime("%d/%m/%Y à %H:%M")}
-    save_treated(data)
+    conn = get_db()
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    conn.execute("INSERT OR REPLACE INTO suivis (shipment_id, pickup_date, marked_at, active) VALUES (?, ?, ?, 1)", (shipment_id, pickup_date, now))
+    conn.commit()
+    conn.close()
 
 def unmark_treated(shipment_id):
-    data = load_treated()
-    data.pop(shipment_id, None)
-    save_treated(data)
+    conn = get_db()
+    conn.execute("UPDATE suivis SET active=0 WHERE shipment_id=?", (shipment_id,))
+    conn.commit()
+    conn.close()
+
+def save_batch_to_db(results_df, meta):
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO analyses (date_analyse, periode_debut, periode_fin, total, ignored) VALUES (?, ?, ?, ?, ?)",
+        (meta.get('date',''), meta.get('periode_debut',''), meta.get('periode_fin',''), meta.get('total',0), meta.get('ignored',0))
+    )
+    analyse_id = cursor.lastrowid
+    for _, row in results_df.iterrows():
+        conn.execute(
+            "INSERT INTO resultats (analyse_id, shipment_id, customer_reference, route, carrier_name, business_unit, pickup_date, lead_time, score_risque, rang, priorite, rang_relatif) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (analyse_id, str(row.get('Shipment_ID','')), str(row.get('Customer_Reference','')),
+             str(row.get('Route','')), str(row.get('Carrier_Name','')), str(row.get('Business_Unit','')),
+             str(row.get('Requested_Pickup_Date','')), row.get('Requested_Lead_Time_Days',0),
+             float(row.get('Score_Risque',0)), int(row.get('Rang',0)),
+             str(row.get('Priorite',row.get('Priorité',''))), str(row.get('Rang_Relatif','')))
+        )
+    conn.commit()
+    conn.close()
+
+def load_last_batch():
+    try:
+        conn = get_db()
+        last = conn.execute("SELECT * FROM analyses ORDER BY id DESC LIMIT 1").fetchone()
+        if not last:
+            conn.close()
+            return None, None
+        rows = conn.execute("SELECT * FROM resultats WHERE analyse_id=? ORDER BY rang", (last['id'],)).fetchall()
+        conn.close()
+        if not rows:
+            return None, None
+        df = pd.DataFrame([dict(r) for r in rows]).rename(columns={
+            'shipment_id':'Shipment_ID', 'customer_reference':'Customer_Reference',
+            'route':'Route', 'carrier_name':'Carrier_Name', 'business_unit':'Business_Unit',
+            'pickup_date':'Requested_Pickup_Date', 'lead_time':'Requested_Lead_Time_Days',
+            'score_risque':'Score_Risque', 'rang':'Rang', 'priorite':'Priorité', 'rang_relatif':'Rang_Relatif'
+        })
+        meta = {
+            'date':    last['date_analyse'],
+            'total':   last['total'],
+            'ignored': last['ignored'],
+            'periode': f"{last['periode_debut']} - {last['periode_fin']}"
+        }
+        return df, meta
+    except Exception:
+        return None, None
 
 # ============================================================
 # PREDICTION
@@ -319,14 +404,7 @@ def process_batch(df_input):
 
     # Log éléments inconnus (cumulatif)
     if unknown_carriers or unknown_routes:
-        log = load_unknown_log()
-        for k, v in unknown_carriers.items():
-            existing = set(log["transporteurs_inconnus"].get(k, []))
-            log["transporteurs_inconnus"][k] = list(existing | v)
-        for k, v in unknown_routes.items():
-            existing = set(log["routes_inconnues"].get(k, []))
-            log["routes_inconnues"][k] = list(existing | v)
-        save_unknown_log(log)
+        save_unknown_elements(unknown_carriers, unknown_routes)
 
     if not results:
         return pd.DataFrame(), ignored
@@ -349,7 +427,7 @@ def format_display(df, sort_by_date=False):
             'Requested_Lead_Time_Days','Score_Risque']
     d = df[[c for c in cols if c in df.columns]].copy()
     if sort_by_date and 'Requested_Pickup_Date' in d.columns:
-        d = d.sort_values('Requested_Pickup_Date')
+        d = d.iloc[d['Requested_Pickup_Date'].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y', errors='coerce')).argsort()].reset_index(drop=True)
     d['Score_Risque'] = d['Score_Risque'].apply(lambda x: f"{x}%")
     d = d.rename(columns={
         'Rang_Relatif': 'Classement', 'Shipment_ID': 'Shipment',
@@ -421,21 +499,24 @@ if page == "Analyse":
                     periode = f"{dates.min().strftime('%d/%m/%Y')} — {dates.max().strftime('%d/%m/%Y')}"
                 except:
                     periode = "N/A"
-                os.makedirs(BATCH_STORAGE_PATH.parent, exist_ok=True)
-                results_df.to_csv(BATCH_STORAGE_PATH, index=False)
-                meta = {'date': datetime.now().strftime("%d/%m/%Y à %H:%M"),
-                        'total': len(results_df), 'ignored': n_ignored, 'periode': periode}
-                with open(BATCH_META_PATH, 'w') as f:
-                    json.dump(meta, f)
+                meta = {
+                    'date':          datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    'total':         len(results_df),
+                    'ignored':       n_ignored,
+                    'periode':       periode,
+                    'periode_debut': periode.split(' - ')[0] if ' - ' in periode else periode,
+                    'periode_fin':   periode.split(' - ')[1] if ' - ' in periode else ''
+                }
+                save_batch_to_db(results_df, meta)
                 st.session_state['results'] = results_df
                 st.session_state['meta']    = meta
             st.rerun()
 
-    if 'results' not in st.session_state and BATCH_STORAGE_PATH.exists():
-        st.session_state['results'] = pd.read_csv(BATCH_STORAGE_PATH)
-        if BATCH_META_PATH.exists():
-            with open(BATCH_META_PATH) as f:
-                st.session_state['meta'] = json.load(f)
+    if 'results' not in st.session_state and DB_PATH.exists():
+        df, meta = load_last_batch()
+        if df is not None:
+            st.session_state['results'] = df
+            st.session_state['meta']    = meta
 
     if 'results' in st.session_state:
         results  = st.session_state['results']
@@ -536,11 +617,11 @@ elif page == "Vue analytique":
     """, unsafe_allow_html=True)
 
     # Charger les résultats
-    if 'results' not in st.session_state and BATCH_STORAGE_PATH.exists():
-        st.session_state['results'] = pd.read_csv(BATCH_STORAGE_PATH)
-        if BATCH_META_PATH.exists():
-            with open(BATCH_META_PATH) as f:
-                st.session_state['meta'] = json.load(f)
+    if 'results' not in st.session_state and DB_PATH.exists():
+        df, meta = load_last_batch()
+        if df is not None:
+            st.session_state['results'] = df
+            st.session_state['meta']    = meta
 
     if 'results' not in st.session_state:
         st.markdown("<div style='text-align:center; padding:3rem; color:#888;'>Aucune analyse disponible. Chargez un fichier depuis la page Analyse.</div>",
