@@ -7,7 +7,7 @@
 
 Ce projet est un système de prédiction des risques de retard sur les expéditions aériennes du contrat Airbus, développé dans le cadre du Master 2 Data & IA (IA School / Nexa Business School).
 
-Il se compose d'un modèle de machine learning (Random Forest) entraîné sur environ 30 000 expéditions synthétiques représentatives des flux réels, et d'une application web Streamlit permettant à l'équipe Performance de CEVA Logistics de prioriser ses interventions préventives au quotidien.
+Il se compose d'un modèle de machine learning (Random Forest) entraîné sur environ 16 000 expéditions synthétiques représentatives des flux réels, et d'une application web Streamlit permettant à l'équipe Performance de CEVA Logistics de prioriser ses interventions préventives au quotidien.
 
 **URL publique** : https://thesis-ceva-airbus-tuxrdhznfvadajonktddvm.streamlit.app/
 
@@ -137,7 +137,7 @@ L'application a été testée et validée sur :
 | Recall Top 50 | 42.2% |
 | Precision seuil 0.5 | 60.6% |
 | Recall seuil 0.5 | 61.4% |
-| Dataset d'entraînement | ~30 000 expéditions aériennes |
+| Dataset d'entraînement | ~16 000 expéditions aériennes |
 
 ---
 
